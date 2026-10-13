@@ -1,0 +1,893 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 물건 찾기</title>
+<style>
+:root {
+  --bg:#f7f8fc; --card:#fff; --text:#202437;
+  --muted:#777f94; --primary:#6d68dc;
+  --line:#e8eaf2; --soft:#f0efff;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,sans-serif;
+}
+button,input,textarea { font:inherit; }
+button { cursor:pointer; }
+.app { max-width:980px; margin:auto; padding:24px 16px 50px; }
+.top,.top-actions,.brand,.search-wrap,.section-head,
+.item-top,.card-actions,.settings-row,.modal-head,.modal-actions {
+  display:flex; align-items:center; gap:10px;
+}
+.top,.section-head,.modal-head { justify-content:space-between; }
+.top { margin-bottom:30px; flex-wrap:wrap; }
+.brand { font-size:20px; font-weight:850; }
+.logo {
+  display:grid; place-items:center; width:42px; height:42px;
+  border-radius:14px; background:var(--primary); color:white; font-size:25px;
+}
+.btn {
+  border:1px solid var(--line); background:white; color:var(--text);
+  border-radius:11px; padding:10px 14px; font-weight:650;
+}
+.btn.primary { background:var(--primary); color:white; border-color:var(--primary); }
+.hero { text-align:center; margin:25px auto 28px; max-width:700px; }
+.eyebrow { color:var(--primary); font-size:12px; font-weight:850; letter-spacing:1.4px; }
+h1 { font-size:clamp(28px,5vw,42px); letter-spacing:-1.5px; margin:10px 0; }
+.hero p { color:var(--muted); line-height:1.7; }
+.search-wrap {
+  background:white; border:1px solid var(--line); border-radius:18px;
+  padding:10px; box-shadow:0 10px 30px #2428500c; margin:24px auto 14px;
+}
+.search-wrap input { flex:1; min-width:0; border:0; outline:0; padding:10px 2px; }
+.search-wrap button {
+  border:0; border-radius:12px; background:var(--primary);
+  color:white; font-weight:750; padding:12px 22px;
+}
+.search-tools,.quick { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.pill,.quick button {
+  border:1px solid var(--line); background:white; color:var(--muted);
+  border-radius:999px; padding:8px 12px; font-size:12px;
+}
+.pill.active { background:var(--soft); color:var(--primary); }
+.quick { justify-content:flex-start; margin:25px 0; align-items:center; }
+.quick strong { font-size:13px; }
+.quick button { color:#555d72; }
+.section-head { margin:24px 0 13px; }
+.section-head h2 { font-size:18px; margin:0; }
+.count { color:var(--muted); font-size:12px; }
+.results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.item-card {
+  background:white; border:1px solid var(--line);
+  border-radius:16px; padding:17px; min-width:0;
+}
+.item-top { align-items:flex-start; }
+.item-icon {
+  width:44px; height:44px; flex-shrink:0; border-radius:13px;
+  background:#f2f1ff; display:grid; place-items:center; font-size:23px;
+}
+.item-main { min-width:0; flex:1; }
+.item-name { font-size:16px; font-weight:800; overflow-wrap:anywhere; }
+.item-cat { font-size:12px; color:var(--muted); margin-top:4px; }
+.match-tag {
+  display:inline-block; font-size:10px; font-weight:800;
+  padding:4px 7px; border-radius:7px; margin-top:8px;
+  background:#eaf7ef; color:#258153;
+}
+.match-tag.related { background:#fff3df; color:#a66b12; }
+.match-tag.ai { background:#e9f2ff; color:#3269b7; }
+.location {
+  margin-top:15px; background:#f7f8fc; border-radius:11px;
+  padding:11px 12px; display:flex; gap:9px; font-size:13px; line-height:1.6;
+}
+.location-text { min-width:0; overflow-wrap:anywhere; }
+.location small { display:block; color:var(--muted); font-size:11px; }
+.item-meta { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.tag { font-size:11px; color:#697187; background:#f2f3f8; border-radius:6px; padding:4px 7px; }
+.card-actions { justify-content:flex-end; margin-top:13px; }
+.mini { border:1px solid var(--line); background:white; border-radius:8px; padding:7px 10px; font-size:12px; }
+.empty {
+  grid-column:1/-1; background:white; border:1px dashed #dfe2ee;
+  border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted);
+}
+.empty strong { display:block; color:var(--text); margin:8px 0; }
+.notice { margin-top:18px; padding:13px; background:var(--soft); border-radius:12px; color:#5c58a7; font-size:12px; line-height:1.7; }
+.footer { text-align:center; color:#9aa0b0; font-size:11px; margin-top:35px; }
+.modal-backdrop {
+  position:fixed; inset:0; background:#16192d70; display:none;
+  align-items:center; justify-content:center; padding:16px; z-index:10;
+}
+.modal-backdrop.show { display:flex; }
+.modal {
+  background:white; border-radius:20px; padding:22px; width:min(100%,540px);
+  max-height:90vh; overflow:auto;
+}
+.modal-head { margin-bottom:18px; }
+.modal-head h2 { margin:0; font-size:21px; }
+.close { border:0; background:#f1f2f7; border-radius:9px; width:34px; height:34px; font-size:20px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+.field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.field.full { grid-column:1/-1; }
+.field label { font-size:12px; font-weight:750; color:#555d72; }
+.field input,.field textarea {
+  width:100%; border:1px solid #e0e3ed; border-radius:10px;
+  padding:11px 12px; outline:none;
+}
+.field textarea { resize:vertical; min-height:75px; }
+.help,.settings-panel p { font-size:11px; color:var(--muted); line-height:1.6; }
+.modal-actions { justify-content:flex-end; margin-top:20px; }
+.settings-panel {
+  display:none; background:white; border:1px solid var(--line);
+  border-radius:16px; padding:17px; margin-top:20px;
+}
+.settings-panel.show { display:block; }
+.settings-row { flex-wrap:wrap; }
+.settings-row input { flex:1; min-width:180px; border:1px solid var(--line); border-radius:9px; padding:10px; }
+.checkrow { display:flex; gap:8px; font-size:12px; color:var(--muted); margin-top:10px; }
+.toast {
+  position:fixed; left:50%; bottom:22px; transform:translate(-50%,20px);
+  background:#25283b; color:white; padding:12px 17px; border-radius:12px;
+  font-size:13px; opacity:0; pointer-events:none; transition:.2s; z-index:20;
+}
+.toast.show { opacity:1; transform:translate(-50%,0); }
+@media(max-width:620px) {
+  .app { padding:18px 13px 40px; }
+  .brand { font-size:17px; }
+  .top-actions { flex-wrap:wrap; }
+  .top-actions .btn { padding:9px 10px; font-size:12px; }
+  .results { grid-template-columns:1fr; }
+  .form-grid { grid-template-columns:1fr; }
+  .field.full { grid-column:auto; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><div class="logo">⌕</div><span>내 물건 찾기</span></div>
+    <div class="top-actions">
+      <button class="btn" id="backupBtn">백업</button>
+      <button class="btn" id="settingsBtn">AI 설정</button>
+      <button class="btn primary" id="addBtn">＋ 물건 추가</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">MY PERSONAL FINDER</div>
+    <h1>어디 뒀더라?</h1>
+    <p>이름이 정확히 기억나지 않아도 괜찮아.<br>검색하면 내가 등록한 물건의 위치를 찾아줄게.</p>
+    <div class="search-wrap">
+      <span style="font-size:22px;padding:0 8px">⌕</span>
+      <input id="searchInput" type="search" placeholder="예: 펜, 충전기, 글씨 쓰는 도구...">
+      <button id="searchBtn">검색</button>
+    </div>
+    <div class="search-tools">
+      <button class="pill active" data-filter="all">전체 결과</button>
+      <button class="pill" data-filter="direct">직접 일치</button>
+      <button class="pill" data-filter="related">연관 물건</button>
+    </div>
+  </section>
+
+  <div class="quick" id="quickSearch">
+    <strong>빠른 검색</strong>
+    <button data-q="펜">펜</button>
+    <button data-q="충전기">충전기</button>
+    <button data-q="테이프">테이프</button>
+    <button data-q="미술용품">미술용품</button>
+  </div>
+
+  <div class="section-head">
+    <h2 id="resultTitle">내 물건</h2>
+    <span class="count" id="resultCount">0개</span>
+  </div>
+  <div class="results" id="results"></div>
+
+  <div class="notice">
+    물건 이름, 보관 위치, 별칭으로 검색할 수 있어.
+    예를 들어 '책상'을 검색하면 책상에 보관한 물건도 찾아줘.
+    연관 검색은 실제로 등록한 물건만 보여 줘.
+  </div>
+
+  <section class="settings-panel" id="settingsPanel">
+    <h3>AI 검색 연결 설정</h3>
+    <p>Cloudflare Workers 같은 중간 서버 주소를 입력하면 AI 의미 검색을 사용할 수 있어. API 키를 이 사이트에 직접 입력하거나 HTML에 넣지 마세요.</p>
+    <div class="settings-row">
+      <input id="workerUrl" type="url" placeholder="https://your-worker.example.workers.dev/search">
+      <button class="btn primary" id="saveWorker">주소 저장</button>
+      <button class="btn" id="testWorker">연결 테스트</button>
+    </div>
+    <label class="checkrow">
+      <input id="enableAI" type="checkbox">
+      일반 검색 결과가 부족할 때 AI 검색 사용
+    </label>
+    <p>중간 서버는 POST JSON 요청을 받고 관련 물건 ID를 JSON으로 반환해야 해. 검색어와 물건 이름·카테고리·별칭만 보내며 보관 위치와 메모는 보내지 않아.</p>
+    <p id="aiStatus">AI 서버가 설정되지 않았습니다. 기본 검색과 연관 검색은 계속 사용할 수 있습니다.</p>
+  </section>
+
+  <div class="footer">내 물건 찾기 · 데이터는 이 브라우저에 저장됩니다</div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2 id="modalTitle">물건 추가</h2>
+      <button class="close" id="closeModal">×</button>
+    </div>
+    <form id="itemForm">
+      <div class="form-grid">
+        <div class="field full">
+          <label for="itemName">물건 이름 *</label>
+          <input id="itemName" required maxlength="100" placeholder="예: 검정색 볼펜">
+        </div>
+        <div class="field">
+          <label for="itemLocation">보관 위치 *</label>
+          <input id="itemLocation" required maxlength="160" placeholder="예: 책상 서랍">
+        </div>
+        <div class="field">
+          <label for="itemDetail">세부 위치</label>
+          <input id="itemDetail" maxlength="160" placeholder="예: 오른쪽 두 번째 칸">
+        </div>
+        <div class="field">
+          <label for="itemCategory">카테고리</label>
+          <input id="itemCategory" maxlength="60" placeholder="예: 필기구">
+        </div>
+        <div class="field">
+          <label for="itemQuantity">수량</label>
+          <input id="itemQuantity" type="number" min="0" max="99999" placeholder="모르면 비워 두기">
+        </div>
+        <div class="field full">
+          <label for="itemAliases">별칭 (선택)</label>
+          <input id="itemAliases" maxlength="300" placeholder="검정 펜, 검은 볼펜">
+          <span class="help">다른 이름을 쉼표로 구분해 입력할 수 있어.</span>
+        </div>
+        <div class="field full">
+          <label for="itemRelated">연관 물건 이름 (선택)</label>
+          <input id="itemRelated" maxlength="300" placeholder="샤프, 연필">
+          <span class="help">연관 물건 자체도 목록에 등록되어 있어야 결과로 표시돼.</span>
+        </div>
+        <div class="field full">
+          <label for="itemMemo">메모</label>
+          <textarea id="itemMemo" maxlength="1000" placeholder="색상, 특징 등 필요한 내용"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="cancelModal">취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </div>
+    </form>
+  </div>
+</div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+const STORAGE_KEY='myFinder.items.v1';
+const WORKER_KEY='myFinder.workerUrl.v1';
+const AI_KEY='myFinder.aiEnabled.v1';
+const $=id=>document.getElementById(id);
+let items=loadItems();
+let editingId=null;
+let filterMode='all';
+let toastTimer;
+
+const synonyms={
+  '펜':['볼펜','유성펜','사인펜','네임펜','형광펜','수성펜','만년필','샤프','연필'],
+  '필기구':['펜','볼펜','유성펜','사인펜','네임펜','형광펜','샤프','연필','지우개','샤프심'],
+  '샤프':['샤프펜슬','기계식 연필','샤프심','연필','펜','필기구'],
+  '연필':['샤프','색연필','지우개','필기구','펜'],
+  '충전기':['충전 케이블','충전선','어댑터','USB 케이블','케이블','보조배터리'],
+  '충전선':['충전기','충전 케이블','케이블','USB 케이블'],
+  '케이블':['충전 케이블','충전선','USB 케이블','충전기'],
+  '테이프':['투명 테이프','양면테이프','마스킹 테이프','접착제','풀'],
+  '미술용품':['물감','붓','팔레트','색연필','크레파스','점토','가위','풀','테이프'],
+  '공예용품':['점토','철사','키링 부자재','글루건','글루건 심','가위','접착제'],
+  '가위':['미니 가위','공예용 가위','풀','테이프'],
+  '접착제':['풀','테이프','양면테이프','글루건','글루건 심'],
+  '화장품':['립밤','립스틱','선크림','거울','빗'],
+  '전자용품':['충전기','케이블','이어폰','보조배터리','어댑터']
+};
+
+function loadItems(){
+  try {
+    const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+    return Array.isArray(raw)
+      ? raw.filter(x=>x&&typeof x.name==='string'&&typeof x.location==='string')
+           .map(normalizeItem)
+      : [];
+  } catch(e) { return []; }
+}
+
+function normalizeItem(x){
+  return {
+    id:typeof x.id==='string'?x.id:makeId(),
+    name:String(x.name||''),
+    location:String(x.location||''),
+    detail:String(x.detail||''),
+    category:String(x.category||''),
+    quantity:x.quantity===''||x.quantity==null?'':String(x.quantity),
+    aliases:Array.isArray(x.aliases)?x.aliases.map(String):[],
+    related:Array.isArray(x.related)?x.related.map(String):[],
+    memo:String(x.memo||''),
+    createdAt:x.createdAt||Date.now(),
+    updatedAt:x.updatedAt||Date.now()
+  };
+}
+
+function makeId(){
+  return 'item-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
+}
+
+function saveItems(){
+  try {
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(items));
+    return true;
+  } catch(e) {
+    showToast('저장 공간이 부족해. 백업 후 일부 데이터를 정리해 줘.');
+    return false;
+  }
+}
+
+function norm(s){
+  return String(s||'').toLocaleLowerCase('ko-KR').normalize('NFKC')
+    .replace(/[\s\-_.,/()[\]{}'"“”‘’·:;!?]/g,'');
+}
+
+function splitList(s){
+  return [...new Set(String(s||'').split(/[,，、\n]/).map(v=>v.trim()).filter(Boolean))];
+}
+
+function showToast(msg){
+  const t=$('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+function exactScore(item,q){
+  const nq=norm(q);
+  if(!nq)return 0;
+  const name=norm(item.name);
+  const aliases=item.aliases.map(norm);
+  const cat=norm(item.category);
+
+  if(name===nq)return 100;
+  if(aliases.includes(nq))return 94;
+  if(name.includes(nq))return 80;
+  if(aliases.some(a=>a.includes(nq)))return 75;
+  if(cat===nq||cat.includes(nq))return 65;
+  if(norm(item.location).includes(nq)||norm(item.detail).includes(nq))return 45;
+  if(norm(item.memo).includes(nq))return 25;
+  return 0;
+}
+
+function relatedTerms(q){
+  const nq=norm(q);
+  const terms=new Set();
+
+  for(const [key,vals] of Object.entries(synonyms)){
+    const group=[key,...vals];
+    const normalized=group.map(norm);
+    if(normalized.some(t=>t===nq||(nq.length>=2&&(t.includes(nq)||nq.includes(t))))) {
+      group.forEach(v=>terms.add(norm(v)));
+    }
+  }
+  return terms;
+}
+
+function explicitRelated(item,target){
+  const a=item.related.map(norm);
+  const b=[target.name,...target.aliases].map(norm);
+
+  return a.some(x=>b.some(y=>x===y||x.includes(y)||y.includes(x))) ||
+    target.related.map(norm).some(x=>
+      [item.name,...item.aliases].map(norm).some(y=>x===y||x.includes(y)||y.includes(x))
+    );
+}
+
+function searchLocal(q){
+  const nq=norm(q);
+  if(!nq) return {direct:[],related:[]};
+
+  const direct=[],related=[];
+  const terms=relatedTerms(q);
+
+  for(const item of items){
+    const score=exactScore(item,q);
+    if(score>0){
+      direct.push({item,score,kind:'direct'});
+      continue;
+    }
+
+    const names=[item.name,...item.aliases].map(norm);
+    const termMatch=[...terms].some(t=>names.some(n=>n===t||n.includes(t)||t.includes(n)));
+    const explicit=items.some(source=>
+      source.id!==item.id&&exactScore(source,q)>0&&explicitRelated(source,item)
+    );
+    const categoryMatch=terms.size>0&&terms.has(norm(item.category));
+
+    if(termMatch||explicit||categoryMatch) {
+      related.push({item,score:explicit?50:categoryMatch?35:30,kind:'related'});
+    }
+  }
+
+  direct.sort((a,b)=>b.score-a.score||a.item.name.localeCompare(b.item.name,'ko'));
+  related.sort((a,b)=>b.score-a.score||a.item.name.localeCompare(b.item.name,'ko'));
+  return {direct,related};
+}
+
+function render(){
+  const q=$('searchInput').value.trim();
+  const result=searchLocal(q);
+  let list;
+
+  if(!q){
+    list=items.map(item=>({item,kind:'all'}))
+      .sort((a,b)=>b.item.updatedAt-a.item.updatedAt);
+    $('resultTitle').textContent='내 물건';
+  } else {
+    $('resultTitle').textContent='검색 결과';
+    list=[...result.direct,...result.related];
+  }
+
+  if(filterMode==='direct')list=list.filter(x=>x.kind==='direct'||x.kind==='all');
+  if(filterMode==='related')list=list.filter(x=>x.kind==='related');
+
+  $('resultCount').textContent=`${list.length}개`;
+  const container=$('results');
+  container.replaceChildren();
+
+  if(!list.length){
+    const div=document.createElement('div');
+    div.className='empty';
+    const icon=document.createElement('div');
+    icon.style.fontSize='34px';
+    icon.textContent=q?'⌕':'□';
+    const strong=document.createElement('strong');
+    strong.textContent=q?'검색 결과가 없어':'아직 등록한 물건이 없어';
+    const p=document.createElement('div');
+    p.textContent=q?'다른 표현으로 검색하거나 새 물건을 등록해 봐.':'물건을 추가하면 여기서 빠르게 찾을 수 있어.';
+    const btn=document.createElement('button');
+    btn.className='btn primary';
+    btn.style.marginTop='15px';
+    btn.textContent=q?'이 이름으로 물건 추가':'첫 물건 등록';
+    btn.onclick=()=>openModal(null,q);
+    div.append(icon,strong,p,btn);
+    container.append(div);
+    return;
+  }
+
+  for(const entry of list)container.append(makeCard(entry.item,entry.kind));
+}
+
+function makeCard(item,kind){
+  const card=document.createElement('article');
+  card.className='item-card';
+
+  const top=document.createElement('div');
+  top.className='item-top';
+
+  const icon=document.createElement('div');
+  icon.className='item-icon';
+  icon.textContent=iconFor(item.category,item.name);
+
+  const main=document.createElement('div');
+  main.className='item-main';
+
+  const name=document.createElement('div');
+  name.className='item-name';
+  name.textContent=item.name;
+
+  const cat=document.createElement('div');
+  cat.className='item-cat';
+  cat.textContent=item.category||'분류 없음';
+
+  main.append(name,cat);
+
+  if(kind==='direct'||kind==='all'){
+    const tag=document.createElement('span');
+    tag.className='match-tag';
+    tag.textContent=kind==='all'?'등록된 물건':'직접 일치';
+    main.append(tag);
+  }
+
+  if(kind==='related'){
+    const tag=document.createElement('span');
+    tag.className='match-tag related';
+    tag.textContent='연관 물건';
+    main.append(tag);
+  }
+
+  if(kind==='ai'){
+    const tag=document.createElement('span');
+    tag.className='match-tag ai';
+    tag.textContent='AI 의미 검색';
+    main.append(tag);
+  }
+
+  top.append(icon,main);
+
+  const loc=document.createElement('div');
+  loc.className='location';
+
+  const pin=document.createElement('span');
+  pin.textContent='📍';
+
+  const locText=document.createElement('div');
+  locText.className='location-text';
+
+  const small=document.createElement('small');
+  small.textContent='보관 위치';
+
+  const strong=document.createElement('strong');
+  strong.textContent=item.location;
+
+  locText.append(small,strong);
+
+  if(item.detail){
+    const detail=document.createElement('div');
+    detail.textContent=item.detail;
+    detail.style.color='var(--muted)';
+    locText.append(detail);
+  }
+
+  loc.append(pin,locText);
+
+  const meta=document.createElement('div');
+  meta.className='item-meta';
+
+  if(item.quantity!==''){
+    const tag=document.createElement('span');
+    tag.className='tag';
+    tag.textContent='수량 '+item.quantity;
+    meta.append(tag);
+  }
+
+  item.aliases.slice(0,3).forEach(a=>{
+    const tag=document.createElement('span');
+    tag.className='tag';
+    tag.textContent=a;
+    meta.append(tag);
+  });
+
+  const actions=document.createElement('div');
+  actions.className='card-actions';
+
+  const copy=document.createElement('button');
+  copy.className='mini';
+  copy.textContent='위치 복사';
+  copy.onclick=()=>copyText([item.location,item.detail].filter(Boolean).join(' · '));
+
+  const edit=document.createElement('button');
+  edit.className='mini';
+  edit.textContent='수정';
+  edit.onclick=()=>openModal(item.id);
+
+  const del=document.createElement('button');
+  del.className='mini';
+  del.textContent='삭제';
+  del.onclick=()=>deleteItem(item.id);
+
+  actions.append(copy,edit,del);
+  card.append(top,loc);
+  if(meta.childElementCount)card.append(meta);
+  card.append(actions);
+  return card;
+}
+
+function iconFor(cat,name){
+  const s=(cat+' '+name).toLowerCase();
+  if(/필기|펜|연필|샤프|지우개|문구/.test(s))return '✏️';
+  if(/전자|충전|케이블|이어폰|배터리|어댑터/.test(s))return '🔌';
+  if(/미술|공예|물감|붓|점토|키링/.test(s))return '🎨';
+  if(/화장|립|선크림|거울/.test(s))return '🧴';
+  if(/옷|의류|양말/.test(s))return '👕';
+  if(/책|노트|종이/.test(s))return '📚';
+  return '📦';
+}
+
+function openModal(id,prefill=''){
+  editingId=id;
+  const item=id?items.find(x=>x.id===id):null;
+  $('modalTitle').textContent=item?'물건 수정':'물건 추가';
+  $('itemName').value=item?.name||prefill;
+  $('itemLocation').value=item?.location||'';
+  $('itemDetail').value=item?.detail||'';
+  $('itemCategory').value=item?.category||'';
+  $('itemQuantity').value=item?.quantity??'';
+  $('itemAliases').value=item?.aliases.join(', ')||'';
+  $('itemRelated').value=item?.related.join(', ')||'';
+  $('itemMemo').value=item?.memo||'';
+  $('modalBackdrop').classList.add('show');
+  setTimeout(()=>$('itemName').focus(),50);
+}
+
+function closeModal(){
+  $('modalBackdrop').classList.remove('show');
+  editingId=null;
+}
+
+$('itemForm').addEventListener('submit',e=>{
+  e.preventDefault();
+
+  const name=$('itemName').value.trim();
+  const location=$('itemLocation').value.trim();
+
+  if(!name||!location){
+    showToast('물건 이름과 보관 위치를 입력해 줘.');
+    return;
+  }
+
+  const existing=editingId?items.find(x=>x.id===editingId):null;
+
+  const item={
+    id:existing?.id||makeId(),
+    name,
+    location,
+    detail:$('itemDetail').value.trim(),
+    category:$('itemCategory').value.trim(),
+    quantity:$('itemQuantity').value,
+    aliases:splitList($('itemAliases').value),
+    related:splitList($('itemRelated').value),
+    memo:$('itemMemo').value.trim(),
+    createdAt:existing?.createdAt||Date.now(),
+    updatedAt:Date.now()
+  };
+
+  if(existing)items=items.map(x=>x.id===editingId?item:x);
+  else items.unshift(item);
+
+  if(saveItems()){
+    closeModal();
+    render();
+    showToast(existing?'물건 정보를 수정했어.':'물건을 등록했어.');
+  }
+});
+
+function deleteItem(id){
+  const item=items.find(x=>x.id===id);
+  if(!item)return;
+  if(!confirm(`'${item.name}'을(를) 삭제할까?`))return;
+  items=items.filter(x=>x.id!==id);
+  saveItems();
+  render();
+  showToast('물건을 삭제했어.');
+}
+
+async function copyText(text){
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('보관 위치를 복사했어.');
+  } catch(e) {
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.append(ta);
+    ta.select();
+    const ok=document.execCommand('copy');
+    ta.remove();
+    showToast(ok?'보관 위치를 복사했어.':'복사하지 못했어.');
+  }
+}
+
+$('addBtn').onclick=()=>openModal(null);
+$('closeModal').onclick=closeModal;
+$('cancelModal').onclick=closeModal;
+
+$('modalBackdrop').addEventListener('click',e=>{
+  if(e.target===$('modalBackdrop'))closeModal();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+});
+
+$('searchBtn').onclick=()=>{render();maybeAISearch();};
+$('searchInput').addEventListener('input',render);
+$('searchInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){render();maybeAISearch();}
+});
+
+document.querySelectorAll('[data-filter]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    filterMode=btn.dataset.filter;
+    document.querySelectorAll('[data-filter]').forEach(b=>
+      b.classList.toggle('active',b===btn)
+    );
+    render();
+  });
+});
+
+$('quickSearch').addEventListener('click',e=>{
+  const b=e.target.closest('[data-q]');
+  if(!b)return;
+  $('searchInput').value=b.dataset.q;
+  filterMode='all';
+  document.querySelectorAll('[data-filter]').forEach(x=>
+    x.classList.toggle('active',x.dataset.filter==='all')
+  );
+  render();
+  maybeAISearch();
+});
+
+$('backupBtn').onclick=()=>{
+  const choice=prompt('데이터 관리\n1: JSON 백업 내보내기\n2: JSON 백업 가져오기','1');
+  if(choice==='1')exportData();
+  else if(choice==='2')$('importFile').click();
+};
+
+function exportData(){
+  const payload={
+    format:'my-finder-backup',
+    version:1,
+    exportedAt:new Date().toISOString(),
+    items
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='my-finder-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('백업 파일을 만들었어.');
+}
+
+$('importFile').addEventListener('change',async e=>{
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file)return;
+
+  try {
+    const parsed=JSON.parse(await file.text());
+    const list=Array.isArray(parsed)?parsed:parsed.items;
+    if(!Array.isArray(list))throw Error('invalid');
+
+    const cleaned=list
+      .filter(x=>x&&typeof x.name==='string'&&typeof x.location==='string')
+      .map(normalizeItem);
+
+    if(!confirm(`${cleaned.length}개 물건을 가져올까? 현재 목록은 교체돼.`))return;
+
+    const oldItems=items;
+    items=cleaned;
+
+    if(saveItems()){
+      render();
+      showToast('백업 데이터를 복원했어.');
+    } else {
+      items=oldItems;
+    }
+  } catch(err) {
+    showToast('올바른 백업 JSON 파일이 아니야.');
+  }
+});
+
+$('settingsBtn').onclick=()=>{
+  $('settingsPanel').classList.toggle('show');
+  $('workerUrl').value=localStorage.getItem(WORKER_KEY)||'';
+  $('enableAI').checked=localStorage.getItem(AI_KEY)==='true';
+};
+
+$('saveWorker').onclick=()=>{
+  const url=$('workerUrl').value.trim();
+
+  if(url){
+    try {
+      const u=new URL(url);
+      if(u.protocol!=='https:')throw Error();
+    } catch(e) {
+      showToast('https://로 시작하는 올바른 서버 주소를 입력해 줘.');
+      return;
+    }
+    localStorage.setItem(WORKER_KEY,url);
+  } else {
+    localStorage.removeItem(WORKER_KEY);
+  }
+
+  localStorage.setItem(AI_KEY,String($('enableAI').checked));
+  updateAIStatus();
+  showToast('AI 검색 설정을 저장했어.');
+};
+
+$('enableAI').onchange=()=>{
+  localStorage.setItem(AI_KEY,String($('enableAI').checked));
+};
+
+function updateAIStatus(){
+  const url=localStorage.getItem(WORKER_KEY);
+  $('aiStatus').textContent=url
+    ?'서버 주소가 저장되어 있어. '+(localStorage.getItem(AI_KEY)==='true'?'AI 검색 사용이 켜져 있어.':'AI 검색 사용이 꺼져 있어.')
+    :'AI 서버가 설정되지 않았습니다. 기본 검색과 연관 검색은 계속 사용할 수 있습니다.';
+}
+
+$('testWorker').onclick=async()=>{
+  const url=$('workerUrl').value.trim();
+  if(!url){showToast('먼저 서버 주소를 입력해 줘.');return;}
+
+  $('aiStatus').textContent='서버 연결을 확인하는 중...';
+
+  try {
+    const res=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'health',query:'연결 테스트',items:[]})
+    });
+
+    if(!res.ok)throw Error('HTTP '+res.status);
+    $('aiStatus').textContent='서버 응답을 받았어. 실제 검색 호환성은 검색 테스트로 확인해야 해.';
+    showToast('서버에서 응답을 받았어.');
+  } catch(e) {
+    $('aiStatus').textContent='연결 실패. 서버 주소, CORS 설정, 서버 상태를 확인해 줘.';
+    showToast('연결에 실패했어.');
+  }
+};
+
+async function maybeAISearch(){
+  const url=localStorage.getItem(WORKER_KEY);
+  const enabled=localStorage.getItem(AI_KEY)==='true';
+  const q=$('searchInput').value.trim();
+
+  if(!url||!enabled||!q)return;
+
+  const local=searchLocal(q);
+  if(local.direct.length>=4)return;
+
+  const candidates=items.slice(0,100).map(x=>({
+    id:x.id,
+    name:x.name,
+    category:x.category,
+    aliases:x.aliases
+  }));
+
+  if(!candidates.length)return;
+
+  $('aiStatus').textContent='AI가 관련 물건을 찾는 중...';
+
+  try {
+    const res=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'search',query:q,items:candidates})
+    });
+
+    if(!res.ok)throw Error('HTTP '+res.status);
+
+    const data=await res.json();
+    const ids=Array.isArray(data.ids)?data.ids:[];
+    const existingIds=new Set([...local.direct,...local.related].map(x=>x.item.id));
+
+    const aiEntries=ids
+      .filter(id=>typeof id==='string'&&!existingIds.has(id))
+      .map(id=>items.find(x=>x.id===id))
+      .filter(Boolean);
+
+    if(aiEntries.length){
+      const container=$('results');
+      const label=document.createElement('div');
+      label.style.cssText='grid-column:1/-1;color:var(--muted);font-size:12px;margin:4px 0';
+      label.textContent='AI 의미 검색 결과';
+      container.append(label);
+
+      aiEntries.forEach(item=>container.append(makeCard(item,'ai')));
+      $('resultCount').textContent=`${container.querySelectorAll('.item-card').length}개`;
+    }
+
+    $('aiStatus').textContent='AI 검색이 완료됐어.';
+  } catch(e) {
+    $('aiStatus').textContent='AI 검색에 실패했어. 일반 검색 결과는 그대로 사용할 수 있어.';
+  }
+}
+
+updateAIStatus();
+render();
+})();
+</script>
+</body>
+</html>
